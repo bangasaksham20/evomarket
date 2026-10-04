@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EvoMarket — Autonomous Genetic Ad Agency</title>
+<script src="static/tailwind-cdn.js"></script>
+<script>
+if (typeof tailwind !== 'undefined') {
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        void:  '#0B0F14',
+        neon:  '#5BE7FF',
+        grape: '#8B5CF6',
+        mint:  '#4ADE80',
+      },
+      fontFamily: {
+        sans: ['Inter','ui-sans-serif','system-ui','sans-serif'],
+        mono: ['JetBrains Mono','ui-monospace','SFMono-Regular','Menlo','monospace'],
+      },
+    }
+  }
+}
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --neon:#5BE7FF; --grape:#8B5CF6; --mint:#4ADE80; --void:#0B0F14; }
+  html { scroll-behavior:smooth; }
+  body { background:var(--void); color:#E9EEF6; font-family:'Inter',ui-sans-serif,system-ui,sans-serif; }
+  .num { font-family:'JetBrains Mono',ui-monospace,monospace; font-variant-numeric: tabular-nums; }
+
+  /* ---- ambient aurora background ---- */
+  .aurora { position:fixed; inset:0; z-index:-1; overflow:hidden; background:var(--void); }
+  .aurora span { position:absolute; border-radius:9999px; filter:blur(110px); opacity:.5; will-change:transform; }
+  .aurora .a1 { width:44rem; height:44rem; left:-12rem; top:-14rem;
+    background:radial-gradient(circle, rgba(91,231,255,.16), transparent 65%);
+    animation:drift1 26s ease-in-out infinite alternate; }
+  .aurora .a2 { width:52rem; height:52rem; right:-16rem; top:22%;
+    background:radial-gradient(circle, rgba(139,92,246,.15), transparent 65%);
+    animation:drift2 32s ease-in-out infinite alternate; }
+  .aurora .a3 { width:36rem; height:36rem; left:30%; bottom:-16rem;
+    background:radial-gradient(circle, rgba(74,222,128,.08), transparent 65%);
+    animation:drift1 38s ease-in-out infinite alternate-reverse; }
+  @keyframes drift1 { from { transform:translate(0,0) scale(1);} to { transform:translate(6rem,4rem) scale(1.15);} }
+  @keyframes drift2 { from { transform:translate(0,0) scale(1.1);} to { transform:translate(-5rem,-3rem) scale(.95);} }
+
+  /* ---- glassmorphism ---- */
+  .glass {
+    background:rgba(255,255,255,.03);
+    -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px);
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 24px 60px -24px rgba(0,0,0,.8);
+  }
+  .glass-deep {
+    background:rgba(0,0,0,.42);
+    -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px);
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+  }
+
+  /* ---- animated gradient text ---- */
+  .gradient-text {
+    background:linear-gradient(90deg, var(--neon), var(--grape), var(--neon));
+    background-size:220% auto;
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    animation:gradientShift 7s linear infinite;
+  }
+  @keyframes gradientShift { to { background-position:220% center; } }
+
+  /* ---- cards: hover lift + neon glow ---- */
+  .card-hover { transition:transform .22s cubic-bezier(.2,.7,.3,1), box-shadow .22s ease, border-color .22s ease; }
+  .card-hover:hover {
+    transform:translateY(-6px);
+    border-color:rgba(91,231,255,.35);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 28px 60px -16px rgba(0,0,0,.85), 0 0 36px -10px rgba(91,231,255,.28);
+  }
+
+  /* ---- staggered entrances ---- */
+  .fade-in { animation:fadeSlideIn .6s cubic-bezier(.2,.7,.25,1) both; }
+  @keyframes fadeSlideIn { from { opacity:0; transform:translateY(18px) scale(.985);} to { opacity:1; transform:none;} }
+
+  /* ---- pipeline ---- */
+  .pipeline-stage { transition:all .45s ease; }
+  .pipeline-stage .dot { transition:all .45s ease; }
+  .pipeline-stage.active .dot {
+    background:linear-gradient(135deg, var(--neon), var(--grape));
+    border-color:transparent;
+    box-shadow:0 0 22px rgba(91,231,255,.75), 0 0 48px -6px rgba(139,92,246,.5);
+  }
+  .pipeline-stage.active .stage-label { color:#F2FBFF; }
+  .pipeline-stage.done .dot {
+    background:linear-gradient(135deg, var(--mint), #22c55e);
+    border-color:transparent;
+    box-shadow:0 0 16px rgba(74,222,128,.55);
+  }
+  .pipeline-stage.done .stage-label { color:rgba(74,222,128,.9); }
+  .pulse-ring { animation:pulseRing 1.8s ease-in-out infinite; }
+  @keyframes pulseRing { 0%,100% { box-shadow:0 0 22px rgba(91,231,255,.75), 0 0 0 0 rgba(91,231,255,.45);} 50% { box-shadow:0 0 22px rgba(91,231,255,.75), 0 0 0 10px rgba(91,231,255,0);} }
+
+  /* ---- shimmer skeletons ---- */
+  .shimmer { position:relative; overflow:hidden; }
+  .shimmer::after {
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(100deg, transparent 20%, rgba(91,231,255,.10) 50%, transparent 80%);
+    animation:shimmer 1.7s infinite;
+  }
+  @keyframes shimmer { from { transform:translateX(-100%);} to { transform:translateX(100%);} }
+
+  /* ---- champion glow (green + neon) ---- */
+  .champion-glow {
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08),
+      0 0 0 1px rgba(74,222,128,.5),
+      0 0 44px -8px rgba(74,222,128,.4),
+      0 0 90px -24px rgba(91,231,255,.3);
+  }
+
+  /* ---- neon primary button ---- */
+  .btn-neon {
+    background:linear-gradient(135deg, #5BE7FF, #8B5CF6);
+    color:#06121a; font-weight:800;
+    box-shadow:0 8px 28px -6px rgba(91,231,255,.5), 0 4px 18px -4px rgba(139,92,246,.45), inset 0 1px 0 rgba(255,255,255,.35);
+    transition:transform .18s cubic-bezier(.2,.7,.3,1), box-shadow .18s ease, filter .18s ease;
+  }
+  .btn-neon:hover:not(:disabled) {
+    transform:translateY(-2px); filter:brightness(1.08);
+    box-shadow:0 12px 36px -6px rgba(91,231,255,.65), 0 6px 22px -4px rgba(139,92,246,.55), inset 0 1px 0 rgba(255,255,255,.4);
+  }
+  .btn-neon:active:not(:disabled) { transform:translateY(0) scale(.98); }
+  .btn-neon:disabled { opacity:.55; cursor:not-allowed; }
+
+  /* ---- glass pills ---- */
+  .pill-glass { transition:all .2s ease; }
+  .pill-glass:hover { border-color:rgba(91,231,255,.45); color:var(--neon); transform:translateY(-1px); }
+
+  /* ---- pruned ---- */
+  .pruned-img { filter:grayscale(.9) brightness(.5); }
+  .pruned-strike { text-decoration:line-through; text-decoration-color:rgba(251,113,133,.7); }
+
+  /* ---- rationale ---- */
+  .rationale-body { max-height:0; overflow:hidden; transition:max-height .35s cubic-bezier(.2,.7,.3,1); }
+  .rationale-open .rationale-body { max-height:400px; }
+  .rationale-open .rationale-chevron { transform:rotate(180deg); }
+  .rationale-chevron { transition:transform .25s ease; }
+
+  /* ---- inputs ---- */
+  .field {
+    background:rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.1); color:#E9EEF6;
+    transition:border-color .2s ease, box-shadow .2s ease;
+  }
+  .field::placeholder { color:rgba(255,255,255,.25); }
+  .field:focus { outline:none; border-color:rgba(91,231,255,.6); box-shadow:0 0 0 3px rgba(91,231,255,.15); }
+
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-track { background:#0B0F14; }
+  ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.12); border-radius:8px; }
+  ::-webkit-scrollbar-thumb:hover { background:rgba(91,231,255,.3); }
+  input, textarea, select { color-scheme:dark; }
+</style>
+</head>
+<body class="min-h-screen">
+<div class="aurora" aria-hidden="true"><span class="a1"></span><span class="a2"></span><span class="a3"></span></div>
+
+<!-- ================= HEADER ================= -->
+<header class="relative overflow-hidden border-b border-white/10 bg-white/[0.02] backdrop-blur-xl">
+  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 py-6">
+    <div class="flex flex-col lg:flex-row lg:items-center gap-6">
+      <!-- Brand -->
+      <div class="flex items-center gap-4 flex-1">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-neon to-grape flex items-center justify-center text-2xl font-black text-[#06121a] ring-1 ring-neon/50 shadow-[0_0_28px_rgba(91,231,255,.4)]">🧬</div>
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-black tracking-tight gradient-text">EvoMarket</h1>
+          <p class="text-xs sm:text-sm text-white/40 font-medium">Autonomous Closed-Loop Genetic Ad Agency</p>
+        </div>
+      </div>
+      <!-- Product identity -->
+      <div class="flex items-center gap-4">
+        <div id="product-avatar" class="w-12 h-12 rounded-2xl bg-gradient-to-br from-neon to-grape flex items-center justify-center text-xl font-black text-[#06121a] ring-1 ring-neon/40 shadow-[0_0_20px_rgba(91,231,255,.3)]">?</div>
+        <div>
+          <div id="product-name" class="font-bold text-lg leading-tight text-white">—</div>
+          <div class="flex items-center gap-2 mt-1">
+            <span id="product-category" class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-white/60">—</span>
+            <span id="product-price" class="text-[11px] num text-white/40">—</span>
+          </div>
+        </div>
+      </div>
+      <!-- Integration badges -->
+      <div class="flex items-center gap-2">
+        <span id="badge-tavily" class="text-[11px] font-bold px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.04] text-white/40 backdrop-blur-xl">Tavily · …</span>
+        <span id="badge-zoowork" class="text-[11px] font-bold px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.04] text-white/40 backdrop-blur-xl">ZooWork · …</span>
+      </div>
+    </div>
+
+    <!-- KPI ribbon -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6">
+      <div class="rounded-3xl glass p-5">
+        <div class="text-[11px] font-semibold uppercase tracking-wider text-white/40">Blended ROAS Surge</div>
+        <div id="kpi-roas" class="num text-lg sm:text-xl font-bold mt-1.5 text-neon">—</div>
+        <div id="kpi-roas-sub" class="text-[11px] text-white/40 mt-0.5">—</div>
+      </div>
+      <div class="rounded-3xl glass p-5">
+        <div class="text-[11px] font-semibold uppercase tracking-wider text-white/40">Total Revenue</div>
+        <div id="kpi-revenue" class="num text-lg sm:text-xl font-bold mt-1.5 text-mint">—</div>
+        <div class="text-[11px] text-white/40 mt-0.5">generated across all generations</div>
+      </div>
+      <div class="rounded-3xl glass p-5">
+        <div class="text-[11px] font-semibold uppercase tracking-wider text-white/40">Total Spend</div>
+        <div id="kpi-spend" class="num text-lg sm:text-xl font-bold mt-1.5 text-white/85">—</div>
+        <div class="text-[11px] text-white/40 mt-0.5">simulated ad exchange budget</div>
+      </div>
+      <div class="rounded-3xl glass p-5">
+        <div class="text-[11px] font-semibold uppercase tracking-wider text-white/40">Net Profit</div>
+        <div id="kpi-profit" class="num text-lg sm:text-xl font-bold mt-1.5 text-grape">—</div>
+        <div class="text-[11px] text-white/40 mt-0.5">revenue − spend</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+  <!-- ================= INTAKE BAR ================= -->
+  <section class="rounded-3xl glass p-5 sm:p-7">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="text-lg font-extrabold tracking-tight text-white">🧪 Autonomous Campaign Experiment Studio</h2>
+      <span class="text-[11px] font-semibold text-white/35 uppercase tracking-wider hidden sm:block">Intake → Evolution → Scale</span>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div class="lg:col-span-2">
+        <label class="text-[11px] font-semibold text-white/45 uppercase tracking-wider">Product Name</label>
+        <input id="in-name" type="text" placeholder="Owala FreeSip 32oz" class="field mt-1.5 w-full rounded-2xl px-4 py-2.5 text-sm">
+      </div>
+      <div>
+        <label class="text-[11px] font-semibold text-white/45 uppercase tracking-wider">Category</label>
+        <select id="in-category" class="field mt-1.5 w-full rounded-2xl px-4 py-2.5 text-sm">
+          <option>Drinkware</option><option>Wallets &amp; EDC</option><option>Beauty Tech</option>
+          <option>Coffee &amp; Beverage</option><option>Fitness Apparel</option><option>Skincare</option>
+          <option>Home</option><option>Other</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-[11px] font-semibold text-white/45 uppercase tracking-wider">Retail Price ($)</label>
+        <input id="in-price" type="number" step="0.01" min="0" placeholder="37.99" class="field mt-1.5 w-full rounded-2xl px-4 py-2.5 text-sm num">
+      </div>
+      <div>
+        <label class="text-[11px] font-semibold text-white/45 uppercase tracking-wider">Stock Image URL <span class="normal-case text-white/30">(optional)</span></label>
+        <input id="in-image" type="url" placeholder="https://…" class="field mt-1.5 w-full rounded-2xl px-4 py-2.5 text-sm">
+      </div>
+    </div>
+    <div class="mt-3">
+      <label class="text-[11px] font-semibold text-white/45 uppercase tracking-wider">Product Description</label>
+      <textarea id="in-desc" rows="2" placeholder="What makes it great? Key features, social proof, differentiators…" class="field mt-1.5 w-full rounded-2xl px-4 py-2.5 text-sm"></textarea>
+    </div>
+    <div class="flex flex-wrap items-center gap-2 mt-5">
+      <span class="text-[11px] font-semibold text-white/35 uppercase tracking-wider mr-1">1-click presets</span>
+      <button data-preset="owala" class="preset-btn pill-glass text-xs font-semibold px-4 py-2 rounded-2xl bg-white/[0.04] border border-white/10 text-white/70">💧 Owala Bottle</button>
+      <button data-preset="ridge" class="preset-btn pill-glass text-xs font-semibold px-4 py-2 rounded-2xl bg-white/[0.04] border border-white/10 text-white/70">💳 Ridge Wallet</button>
+      <button data-preset="solawave" class="preset-btn pill-glass text-xs font-semibold px-4 py-2 rounded-2xl bg-white/[0.04] border border-white/10 text-white/70">✨ Solawave Wand</button>
+      <button data-preset="coffee" class="preset-btn pill-glass text-xs font-semibold px-4 py-2 rounded-2xl bg-white/[0.04] border border-white/10 text-white/70">☕ Craft Coffee</button>
+      <div class="flex-1"></div>
+      <button id="run-btn" class="btn-neon text-sm px-7 py-3 rounded-2xl">🚀 Run Optimizer Loop</button>
+    </div>
+  </section>
+
+  <!-- ================= ERROR BANNER ================= -->
+  <div id="error-banner" class="hidden rounded-3xl border border-rose-400/30 bg-rose-500/10 backdrop-blur-xl p-4 text-sm text-rose-200"></div>
+
+  <!-- ================= PIPELINE PROGRESS ================= -->
+  <section id="pipeline-section" class="rounded-3xl glass p-5 sm:p-7">
+    <h2 class="text-lg font-extrabold tracking-tight mb-5 text-white">⚙️ Evolution Pipeline</h2>
+    <div id="pipeline" class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0"></div>
+  </section>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- ================= CAMPAIGN CARDS ================= -->
+    <section class="lg:col-span-2">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <h2 class="text-lg font-extrabold tracking-tight text-white">📊 Campaign Variants <span id="card-count" class="text-xs font-semibold text-white/40 num"></span></h2>
+        <div id="epoch-filters" class="flex flex-wrap gap-1.5"></div>
+      </div>
+      <div id="cards-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+      <!-- skeleton state -->
+      <div id="skeleton" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div class="shimmer rounded-3xl glass h-96"></div>
+        <div class="shimmer rounded-3xl glass h-96"></div>
+        <div class="shimmer rounded-3xl glass h-96"></div>
+        <div class="shimmer rounded-3xl glass h-96"></div>
+      </div>
+      <div id="empty-state" class="hidden rounded-3xl border border-dashed border-white/15 p-10 text-center text-white/40 text-sm glass">No variants in this generation filter.</div>
+    </section>
+
+    <!-- ================= TRENDS PANEL ================= -->
+    <aside>
+      <h2 class="text-lg font-extrabold tracking-tight mb-5 text-white">🔎 Tavily Cultural Recon</h2>
+      <div id="trends-list" class="space-y-3">
+        <div class="shimmer rounded-3xl glass h-24"></div>
+        <div class="shimmer rounded-3xl glass h-24"></div>
+        <div class="shimmer rounded-3xl glass h-24"></div>
+      </div>
+    </aside>
+  </div>
+
+</main>
+
+<footer class="max-w-7xl mx-auto px-4 sm:px-6 pb-10">
+  <div class="rounded-3xl glass p-4 text-[11px] leading-relaxed text-white/45">
+    <span class="font-semibold text-white/70">Disclaimer:</span> <span id="disclaimer">Simulated ad exchange — metrics are modeled, not live platform data.</span>
+  </div>
+  <div class="text-center text-[11px] text-white/30 mt-4">EvoMarket · Genetic creative evolution · Built for autonomous ad experimentation</div>
+</footer>
+
+<script>
+'use strict';
+
+/* ---------- helpers ---------- */
+const $ = (id) => document.getElementById(id);
+const money = (v) => '$' + Number(v || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const roas = (v) => Number(v || 0).toFixed(2) + 'x';
+const pct = (v) => Number(v || 0).toFixed(2) + '%';
+const esc = (s) => String(s == null ? '' : s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+  .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+
+const PRESETS = {
+  owala:   { product_name: 'Owala FreeSip 32oz', category: 'Drinkware', retail_price: 37.99,
+             image_url: '',
+             description: 'Leak-proof insulated stainless steel water bottle with FreeSip spout. 24-hour cold retention, pastel Color Drop finishes, cupholder-friendly.' },
+  ridge:   { product_name: 'Ridge Wallet', category: 'Wallets & EDC', retail_price: 98.00,
+             image_url: '',
+             description: 'Minimalist RFID-blocking metal wallet. Holds up to 12 cards, lifetime warranty, 30k+ 5-star reviews.' },
+  solawave:{ product_name: 'Solawave 4-in-1 Radiant Renewal Wand', category: 'Beauty Tech', retail_price: 169.00,
+             image_url: '',
+             description: 'Red light therapy, microcurrent, facial massage and therapeutic warmth in one award-winning skincare wand.' },
+  coffee:  { product_name: 'Atlas Craft Coffee Subscription', category: 'Coffee & Beverage', retail_price: 24.00,
+             image_url: '',
+             description: 'Single-origin specialty coffee, roasted weekly and delivered fresh. Pause anytime.' },
+};
+
+const FALLBACK_PIPELINE = ['Tavily Recon','ZooWork Decomposition','Ad Network Simulation','50% Pruning','Crossover Alpha','Champion Convergence'];
+const GEN_LABELS = ['Gen 0 (Cold Start)','Gen 1 (Tavily Recon)','Gen 2 (Crossover Alpha)','Gen 3 (Max Scale)'];
+
+let lastData = null;
+let activeFilter = 'all';
+let pipelineTimer = null;
+let pipelineStageIdx = -1;
+
+const AVATAR_GRADIENTS = [
+  'from-neon to-grape','from-grape to-neon','from-mint to-neon',
+  'from-neon to-mint','from-grape to-[#3b2a6e]','from-mint to-[#0e4d33]'
+];
+
+/* ---------- badges ---------- */
+function statusBadge(status) {
+  if (status === 'REIGNING CHAMPION')
+    return '<span class="text-[10px] font-black tracking-wide px-2.5 py-1 rounded-full bg-gradient-to-r from-mint to-neon text-[#052e1b] shadow-[0_0_16px_rgba(74,222,128,.45)]">👑 REIGNING CHAMPION</span>';
+  if (status === 'SURVIVOR')
+    return '<span class="text-[10px] font-black tracking-wide px-2.5 py-1 rounded-full bg-neon/10 border border-neon/40 text-neon">SURVIVOR</span>';
+  return '<span class="text-[10px] font-black tracking-wide px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-400/40 text-rose-300">PRUNED</span>';
+}
+
+const PLATFORM_STYLE = {
+  tiktok: 'bg-neon/10 border-neon/30 text-neon',
+  meta: 'bg-grape/15 border-grape/40 text-[#c9b8ff]',
+  google: 'bg-mint/10 border-mint/30 text-mint',
+};
+function platformPill(platform, label) {
+  const cls = PLATFORM_STYLE[platform] || 'bg-white/[0.06] border-white/15 text-white/60';
+  return '<span class="text-[10px] font-bold px-2.5 py-1 rounded-full border backdrop-blur-xl ' + cls + '">' + esc(label || platform) + '</span>';
+}
+
+function integrationBadge(el, name, state) {
+  if (state === 'live') {
+    el.className = 'text-[11px] font-bold px-3 py-1.5 rounded-full border border-mint/40 bg-mint/10 text-mint backdrop-blur-xl shadow-[0_0_14px_rgba(74,222,128,.25)]';
+    el.textContent = name + ' · live';
+  } else {
+    el.className = 'text-[11px] font-bold px-3 py-1.5 rounded-full border border-grape/40 bg-grape/10 text-[#c9b8ff] backdrop-blur-xl';
+    el.textContent = name + ' · fallback';
+  }
+}
+
+/* ---------- pipeline ---------- */
+function renderPipeline(stages) {
+  const wrap = $('pipeline');
+  wrap.innerHTML = '';
+  stages.forEach((s, i) => {
+    const stage = document.createElement('div');
+    stage.className = 'pipeline-stage flex items-center gap-2.5 flex-1 min-w-0';
+    stage.innerHTML =
+      '<div class="dot w-8 h-8 shrink-0 rounded-full bg-white/[0.04] border border-white/10 backdrop-blur-xl flex items-center justify-center text-xs font-black text-white/50">' +
+        '<span class="dot-num">' + (i + 1) + '</span><span class="dot-check hidden">✓</span></div>' +
+      '<div class="stage-label text-xs font-semibold text-white/40 leading-tight">' + esc(s) + '</div>';
+    wrap.appendChild(stage);
+    if (i < stages.length - 1) {
+      const conn = document.createElement('div');
+      conn.className = 'hidden sm:block w-4 h-px bg-white/10 shrink-0';
+      wrap.appendChild(conn);
+    }
+  });
+}
+
+function pipelineSetStage(idx, done) {
+  const stages = $('pipeline').querySelectorAll('.pipeline-stage');
+  stages.forEach((el, i) => {
+    el.classList.remove('active','done','pulse-ring');
+    const num = el.querySelector('.dot-num'), check = el.querySelector('.dot-check');
+    if (done || i < idx) {
+      el.classList.add('done'); num.classList.add('hidden'); check.classList.remove('hidden');
+    } else if (i === idx) {
+      el.classList.add('active','pulse-ring'); num.classList.remove('hidden'); check.classList.add('hidden');
+    } else {
+      num.classList.remove('hidden'); check.classList.add('hidden');
+    }
+  });
+}
+
+function pipelineAnimate(count) {
+  clearInterval(pipelineTimer);
+  pipelineStageIdx = -1;
+  pipelineTimer = setInterval(() => {
+    if (pipelineStageIdx < count - 1) {
+      pipelineStageIdx++;
+      pipelineSetStage(pipelineStageIdx, false);
+    }
+  }, 700);
+}
+
+function pipelineComplete() {
+  clearInterval(pipelineTimer);
+  pipelineSetStage(0, true);
+}
+
+/* ---------- trends ---------- */
+function renderTrends(trends) {
+  const list = $('trends-list');
+  if (!trends || !trends.length) {
+    list.innerHTML = '<div class="rounded-3xl glass p-4 text-sm text-white/40">No trend signals returned.</div>';
+    return;
+  }
+  list.innerHTML = trends.map(t =>
+    '<a href="' + esc(t.url || '#') + '" target="_blank" rel="noopener" class="fade-in block rounded-3xl glass p-4 pill-glass">' +
+      '<div class="text-sm font-bold text-white leading-snug">' + esc(t.title) + '</div>' +
+      '<div class="text-xs text-white/50 mt-1.5 leading-relaxed">' + esc(t.insight) + '</div>' +
+      '<div class="text-[10px] text-neon/80 mt-2 font-semibold">↗ source</div>' +
+    '</a>'
+  ).join('');
+}
+
+/* ---------- cards ---------- */
+function cardHTML(ad, idx) {
+  const pruned = ad.status === 'PRUNED';
+  const champ = ad.status === 'REIGNING CHAMPION';
+  const lineage = ad.id + (ad.parents && ad.parents.length ? ' ← ' + ad.parents.join(' + ') : ' (seed)');
+  const rationaleTitle = pruned ? 'Why it died' : 'Why it won';
+  const delay = Math.min((idx || 0) * 55, 660);
+  return (
+    '<article style="animation-delay:' + delay + 'ms" class="fade-in card-hover rounded-3xl glass ' + (champ ? 'border-mint/40 champion-glow' : '') + ' overflow-hidden flex flex-col">' +
+      '<div class="relative">' +
+        '<img src="' + ad.creative + '" alt="ad creative" class="w-full h-52 object-cover ' + (pruned ? 'pruned-img' : '') + '" loading="lazy">' +
+      '</div>' +
+      '<div class="p-5 flex flex-col gap-2.5 flex-1">' +
+        '<div class="flex items-center justify-between gap-2 flex-wrap">' +
+          '<div class="flex gap-1.5">' + platformPill(ad.platform, ad.platform_label) + '</div>' +
+          statusBadge(ad.status) +
+        '</div>' +
+        '<div class="flex items-center gap-2 flex-wrap">' +
+          '<span class="text-[10px] num font-semibold px-1.5 py-0.5 rounded bg-white/[0.07] text-white/50">' + esc(ad.id) + '</span>' +
+          '<span class="text-[10px] font-semibold text-white/40">' + esc(ad.angle) + '</span>' +
+        '</div>' +
+        '<h3 class="font-bold text-[15px] leading-snug ' + (pruned ? 'pruned-strike text-white/40' : 'text-white') + '">“' + esc(ad.hook) + '”</h3>' +
+        '<p class="text-xs text-white/55 leading-relaxed">' + esc(ad.body) + '</p>' +
+        '<div class="text-[11px] text-white/40"><span class="font-semibold text-white/50">🎯</span> ' + esc(ad.audience) + '</div>' +
+        '<div class="text-[11px] num text-white/40">🧬 ' + esc(lineage) + '</div>' +
+        '<div class="grid grid-cols-4 gap-2 mt-1 rounded-2xl glass-deep p-3">' +
+          metricCell('Spend', money(ad.spend)) +
+          metricCell('CTR', pct(ad.ctr)) +
+          metricCell('Revenue', money(ad.revenue)) +
+          metricCell('ROAS', roas(ad.roas)) +
+        '</div>' +
+        '<div class="rationale rounded-2xl border border-white/10 bg-black/30 backdrop-blur-xl">' +
+          '<button class="rationale-toggle w-full flex items-center justify-between px-3 py-2 text-[11px] font-bold text-white/70 hover:text-neon transition-colors">' +
+            '<span>' + rationaleTitle + '</span><span class="rationale-chevron text-white/40">▾</span>' +
+          '</button>' +
+          '<div class="rationale-body px-3"><p class="text-[11px] text-white/50 leading-relaxed pb-3">' + esc(ad.rationale) + '</p></div>' +
+        '</div>' +
+      '</div>' +
+    '</article>'
+  );
+}
+function metricCell(label, value) {
+  return '<div><div class="text-[9px] font-semibold uppercase tracking-wider text-white/35">' + label + '</div>' +
+    '<div class="num text-[13px] font-bold text-white mt-0.5">' + value + '</div></div>';
+}
+
+function renderFilters(generations) {
+  const wrap = $('epoch-filters');
+  const opts = [{key:'all', label:'All Generations'}].concat(
+    generations.map((g, i) => ({key:String(g.gen), label: GEN_LABELS[i] || ('Gen ' + g.gen)}))
+  );
+  wrap.innerHTML = '';
+  opts.forEach(o => {
+    const b = document.createElement('button');
+    const on = activeFilter === o.key;
+    b.className = 'text-[11px] font-bold px-3.5 py-1.5 rounded-full border backdrop-blur-xl transition ' +
+      (on ? 'bg-neon/15 border-neon/50 text-neon shadow-[0_0_16px_rgba(91,231,255,.3)]'
+          : 'pill-glass bg-white/[0.03] border-white/10 text-white/50');
+    b.textContent = o.label;
+    b.onclick = () => { activeFilter = o.key; renderFilters(generations); renderCards(); };
+    wrap.appendChild(b);
+  });
+}
+
+function renderCards() {
+  if (!lastData) return;
+  const grid = $('cards-grid');
+  let ads = [];
+  lastData.generations.forEach(g => {
+    if (activeFilter === 'all' || String(g.gen) === activeFilter) {
+      (g.ads || []).forEach(a => ads.push(a));
+    }
+  });
+  // champion first, then survivors, then pruned
+  const rank = { 'REIGNING CHAMPION': 0, 'SURVIVOR': 1, 'PRUNED': 2 };
+  ads.sort((a, b) => (rank[a.status] ?? 3) - (rank[b.status] ?? 3) || (b.fitness || 0) - (a.fitness || 0));
+  $('card-count').textContent = '· ' + ads.length + ' variants';
+  if (!ads.length) {
+    grid.innerHTML = ''; $('empty-state').classList.remove('hidden'); return;
+  }
+  $('empty-state').classList.add('hidden');
+  grid.innerHTML = ads.map((a, i) => cardHTML(a, i)).join('');
+  grid.querySelectorAll('.rationale-toggle').forEach(btn => {
+    btn.addEventListener('click', () => btn.closest('.rationale').classList.toggle('rationale-open'));
+  });
+}
+
+/* ---------- header / KPI ---------- */
+function renderHeader(data) {
+  const p = data.product || {};
+  const name = p.name || '—';
+  $('product-name').textContent = name;
+  $('product-category').textContent = p.category || '—';
+  $('product-price').textContent = p.retail_price != null ? money(p.retail_price) + ' MSRP' : '';
+  const av = $('product-avatar');
+  av.textContent = (name.trim()[0] || '?').toUpperCase();
+  av.className = 'w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-black text-[#06121a] bg-gradient-to-br ring-1 ring-neon/40 shadow-[0_0_20px_rgba(91,231,255,.3)] ' +
+    AVATAR_GRADIENTS[name.length % AVATAR_GRADIENTS.length];
+
+  const t = data.totals || {};
+  $('kpi-roas').textContent = roas(t.initial_roas) + ' ➔ ' + roas(t.final_roas);
+  const uplift = Number(t.uplift_pct || 0);
+  $('kpi-roas-sub').textContent = (uplift >= 0 ? '+' : '') + uplift.toFixed(0) + '% uplift across evolution';
+  $('kpi-revenue').textContent = money(t.revenue);
+  $('kpi-spend').textContent = money(t.spend);
+  const profitEl = $('kpi-profit');
+  profitEl.textContent = money(t.profit);
+  profitEl.classList.remove('text-grape', 'text-mint', 'text-rose-400');
+  profitEl.classList.add(Number(t.profit) >= 0 ? 'text-mint' : 'text-rose-400');
+
+  const integ = data.integrations || {};
+  integrationBadge($('badge-tavily'), 'Tavily', integ.tavily);
+  integrationBadge($('badge-zoowork'), 'ZooWork', integ.zoowork);
+
+  if (data.disclaimer) $('disclaimer').textContent = data.disclaimer;
+}
+
+/* ---------- main fetch ---------- */
+async function runOptimizer(payload) {
+  const stages = FALLBACK_PIPELINE;
+  renderPipeline(stages);
+  pipelineAnimate(stages.length);
+  $('skeleton').classList.remove('hidden');
+  $('cards-grid').innerHTML = '';
+  $('empty-state').classList.add('hidden');
+  $('error-banner').classList.add('hidden');
+  const btn = $('run-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Evolving…';
+
+  try {
+    const res = await fetch('/api/optimize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error('Server returned HTTP ' + res.status);
+    const data = await res.json();
+    lastData = data;
+    activeFilter = 'all';
+    renderPipeline((data.pipeline && data.pipeline.length) ? data.pipeline : FALLBACK_PIPELINE);
+    pipelineComplete();
+    renderHeader(data);
+    renderTrends(data.trends);
+    renderFilters(data.generations || []);
+    renderCards();
+  } catch (err) {
+    pipelineComplete();
+    const eb = $('error-banner');
+    eb.innerHTML = '<span class="font-bold">⚠️ Optimizer run failed.</span> ' + esc(err.message || String(err)) +
+      ' <span class="text-rose-300/70">Check that the backend is running, then try again.</span>';
+    eb.classList.remove('hidden');
+  } finally {
+    $('skeleton').classList.add('hidden');
+    btn.disabled = false;
+    btn.textContent = '🚀 Run Optimizer Loop';
+  }
+}
+
+/* ---------- presets & intake ---------- */
+function fillPreset(key) {
+  const p = PRESETS[key];
+  if (!p) return;
+  $('in-name').value = p.product_name;
+  $('in-category').value = p.category;
+  $('in-price').value = p.retail_price;
+  $('in-image').value = p.image_url || '';
+  $('in-desc').value = p.description;
+}
+function collectPayload() {
+  return {
+    product_name: $('in-name').value.trim() || 'Untitled Product',
+    description: $('in-desc').value.trim(),
+    category: $('in-category').value,
+    image_url: $('in-image').value.trim() || undefined,
+    retail_price: parseFloat($('in-price').value) || 29.99,
+  };
+}
+
+document.querySelectorAll('.preset-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    fillPreset(b.dataset.preset);
+    runOptimizer(collectPayload());
+  });
+});
+$('run-btn').addEventListener('click', () => runOptimizer(collectPayload()));
+
+/* ---------- boot: auto-run Owala preset ---------- */
+renderPipeline(FALLBACK_PIPELINE);
+fillPreset('owala');
+runOptimizer(collectPayload());
+</script>
+</body>
+</html>
